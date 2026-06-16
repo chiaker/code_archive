@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import List
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from . import crud, schemas
@@ -59,3 +59,28 @@ def file_structure(name: str, db: Session = Depends(get_db)) -> schemas.FileStru
         path=file.path,
         definitions=[schemas.DefinitionOut.model_validate(d) for d in file.definitions],
     )
+
+
+@app.get("/api/search", response_model=List[schemas.SearchResult])
+def search(
+    q: str = Query(..., description="Keyword to match in a name or docstring"),
+    db: Session = Depends(get_db),
+) -> List[schemas.SearchResult]:
+    """Search definitions by name or docstring (case-insensitive).
+
+    Returns an empty list when nothing matches (never a 500).
+    """
+
+    return [
+        schemas.SearchResult(
+            id=d.id,
+            name=d.name,
+            kind=d.kind,
+            line_start=d.line_start,
+            line_end=d.line_end,
+            docstring=d.docstring,
+            file_name=d.file.name,
+            file_path=d.file.path,
+        )
+        for d in crud.search_definitions(db, q)
+    ]
