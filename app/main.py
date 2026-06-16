@@ -5,7 +5,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import List
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
 from . import crud, schemas
@@ -40,3 +40,22 @@ def list_files(db: Session = Depends(get_db)) -> List[schemas.FileSummary]:
         )
         for file, function_count in crud.list_files(db)
     ]
+
+
+@app.get("/api/files/{name}/structure", response_model=schemas.FileStructureOut)
+def file_structure(name: str, db: Session = Depends(get_db)) -> schemas.FileStructureOut:
+    """Return the full structure (functions and classes) of one file.
+
+    A missing file is a 404 (not found); a file with no definitions returns an
+    empty ``definitions`` list rather than an error.
+    """
+
+    file = crud.get_file_structure(db, name)
+    if file is None:
+        raise HTTPException(status_code=404, detail=f"File not found: {name}")
+
+    return schemas.FileStructureOut(
+        name=file.name,
+        path=file.path,
+        definitions=[schemas.DefinitionOut.model_validate(d) for d in file.definitions],
+    )
