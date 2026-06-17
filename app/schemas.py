@@ -54,3 +54,12 @@ class SearchResult(BaseModel):
     docstring: Optional[str] = None
     file_name: str
     file_path: str
+
+
+class StatsOut(BaseModel):
+    """Summary statistics for the whole archive."""
+
+    files: int
+    functions: int
+    classes: int
+    definitions: int
