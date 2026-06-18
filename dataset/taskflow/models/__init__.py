@@ -1,0 +1,1 @@
+"""ORM-style domain models."""
